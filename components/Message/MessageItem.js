@@ -7,16 +7,14 @@ import {
 	useTheme,
 	View,
 } from '@aws-amplify/ui-react'
-import { Storage } from 'aws-amplify'
-import { useEffect, useState } from 'react'
 
 export const MessageItem = ({ msg = {}, myUsername }) => {
 	const { tokens } = useTheme()
-	if (msg.content.imageId) {
-		// console.log('the message', msg)
-	}
-	const isMyMsg = msg.owner === myUsername
-	const isEdited = msg.createdAt !== msg.updatedAt
+
+	const isMyMsg = msg.owner === myUsername;
+	const isEdited = msg.createdAt !== msg.updatedAt;
+
+	const date = new Date(msg.createdAt);
 
 	return (
 		<Card
@@ -27,13 +25,14 @@ export const MessageItem = ({ msg = {}, myUsername }) => {
 			backgroundColor={isMyMsg ? '#007aff' : '#DDDDDD'}
 		>
 			<Flex>
-				<Image
-					borderRadius={tokens.radii.small}
-					src={`https://github.com/${msg.owner}.png`}
-					height="50px"
-					width={'50px'}
-					alt="avatar"
-				/>
+				{msg.avatar &&
+					<Image
+						borderRadius={tokens.radii.small}
+						src={`https://github.com/${msg.owner}.png`}
+						height="50px"
+						width={'50px'}
+						alt="avatar"
+					/>}
 
 				<View>
 					<Flex>
@@ -45,7 +44,7 @@ export const MessageItem = ({ msg = {}, myUsername }) => {
 								fontSize={'12px'}
 								fontWeight="normal"
 							>
-								{msg.createdAt}
+								{date.toLocaleTimeString( { hour: 'numberic', minute: '2-digit' })}
 							</Text>
 						</Heading>
 					</Flex>
@@ -55,7 +54,6 @@ export const MessageItem = ({ msg = {}, myUsername }) => {
 						msgContent={msg.content.text}
 						isEdited={isEdited}
 					/>
-					<PicMessage isMyMsg={isMyMsg} msgContent={msg.content.imageId} />
 				</View>
 			</Flex>
 		</Card>
@@ -68,16 +66,4 @@ const TextMessage = ({ isMyMsg, msgContent, isEdited }) => {
 			{msgContent}{' '}
 		</Text>
 	)
-}
-
-const PicMessage = ({ msgContent }) => {
-	const [picUrl, setPicUrl] = useState('')
-	console.log(msgContent)
-	useEffect(() => {
-		Storage.get(msgContent).then((url) => {
-			console.log(url)
-			setPicUrl(url)
-		})
-	}, [msgContent])
-	return <Image src={picUrl} alt="" />
-}
+};
