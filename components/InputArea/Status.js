@@ -11,7 +11,7 @@ function StatusDot({ status }) {
   return (
     <div style={{ display: "flex", alignItems: "center" }}>
     <div style={{ backgroundColor: color, width: "10px", height: "10px", borderRadius: "50%" }} />
-    <div style={{ marginLeft: "10px", textTransform:"capitalize", fontSize: ".9rem", fontStyle: "italic", color:'black' }}>{status}</div>
+    <div style={{ marginLeft: "10px", textTransform:"capitalize", fontSize: ".9rem", fontStyle: "italic", color:'#EFEFEF' }}>{status}</div>
   </div>
   );
 }

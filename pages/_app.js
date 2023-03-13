@@ -5,7 +5,8 @@ import '../styles/globals.css'
 function MyApp({ Component, pageProps }) {
 	return (
 		<AmplifyProvider>
-			<Component {...pageProps} />
+			<div id="modal-root"></div>
+			<Component {...pageProps} />			
 		</AmplifyProvider>
 	)
 }

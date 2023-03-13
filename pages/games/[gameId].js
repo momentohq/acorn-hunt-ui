@@ -1,19 +1,36 @@
 import { Flex, Heading, useTheme, View } from '@aws-amplify/ui-react'
+import Head from 'next/head';
 import { useEffect, useState } from 'react'
 import { InputArea } from '../../components/InputArea'
 import { MessageList } from '../../components/Message'
-import { ConversationBar } from '../../components/ConversationBar'
 import { useRouter } from 'next/router'
 import useWebSocket, { ReadyState } from 'react-use-websocket';
 import styles from './[gameId].module.css';
 
-const socketUrl = 'wss://e3gxgnmytj.execute-api.us-east-1.amazonaws.com/demo'
+const socketBaseUrl = 'wss://e3gxgnmytj.execute-api.us-east-1.amazonaws.com/demo';
 
 function GamePage({ }) {
-	const { tokens } = useTheme()
-	const router = useRouter()
+	const { tokens } = useTheme();
+	const router = useRouter();
 
-	const { sendJsonMessage, lastMessage, readyState } = useWebSocket(`${socketUrl}?access_token=${router.query.auth}`, {
+	const [messages, setMessages] = useState([]);
+	const [gameName, setGameName] = useState('Loading...');
+	const [gameTitle, setGameTitle] = useState('Loading Game...');
+	const [username, setUsername] = useState('');
+	const [authToken, setAuthToken] = useState('');
+	const [socketUrl, setSocketUrl] = useState(socketBaseUrl);
+
+	useEffect(() => {
+		setAuthToken(localStorage.getItem('AH-authToken'));
+		setUsername(localStorage.getItem('AH-username'));
+	}, []);
+
+	useEffect(() => {
+		setSocketUrl(`${socketBaseUrl}?access_token=${authToken}`);
+	}, [authToken]);
+
+
+	const { sendJsonMessage, readyState } = useWebSocket(socketUrl, {
 		onOpen: () => loginToGame(router.query.gameId),
 		onMessage: (event) => processMessage(event)
 	});
@@ -26,12 +43,9 @@ function GamePage({ }) {
 		[ReadyState.UNINSTANTIATED]: 'Uninstantiated',
 	}[readyState];
 
-	const [messages, setMessages] = useState([]);
-	const [gameName, setGameName] = useState('Loading...');
-	const [username, setUsername] = useState('');
-
 
 	const loginToGame = (gameId) => {
+		console.log('here', gameId);
 		sendJsonMessage({
 			action: 'join-game',
 			gameId: gameId
@@ -40,6 +54,7 @@ function GamePage({ }) {
 
 	const processMessage = (event) => {
 		const message = JSON.parse(event.data);
+		console.log(message);
 		if (!message.type) return;
 
 		switch (message.type.toLowerCase()) {
@@ -53,6 +68,7 @@ function GamePage({ }) {
 				handleGameJoined(message.players, message.messages);
 				setUsername(message.username);
 				setGameName(message.name);
+				setGameTitle(`${message.name} | Acorn Hunt`);
 				break;
 		}
 	}
@@ -123,6 +139,9 @@ function GamePage({ }) {
 	return (
 		<>
 			<View>
+				<Head>
+					<title>{gameTitle}</title>
+				</Head>
 				<Flex direction={{ base: 'column', medium: 'row' }}>
 					<View flex={{ base: 0, medium: 1 }}>
 						<View margin="0 auto" maxWidth={{ base: '95vw', medium: '100vw' }}>
@@ -131,11 +150,11 @@ function GamePage({ }) {
 								padding={tokens.space.small}
 								textAlign={'center'}
 								level={3}
-								color={'#25392B'}
+								color={'#FFFFFF'}
 							>
 								{gameName}
 							</Heading>
-							<Flex direction="column" height="85vh">
+							<Flex direction="column" height="85vh" padding={'0 1em'}>
 								<MessageList messages={messages} myUsername={username} />
 								<InputArea onMessageSend={handleMessageSend} connectionStatus={connectionStatus} />
 							</Flex>

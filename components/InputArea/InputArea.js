@@ -50,7 +50,7 @@ export const InputArea = ({ onMessageSend, connectionStatus }) => {
 							value={messageText}
 							disabled={connectionStatus !== 'Connected'}
 						/>
-						<Button variation="primary" type="submit" height="3em" width="6em" marginTop=".5em" disabled={connectionStatus !== 'Connected'}>
+						<Button backgroundColor="#00C88C" color="black" variation="primary" type="submit" height="3em" width="6em" marginTop=".5em" disabled={connectionStatus !== 'Connected'}>
 							Send
 						</Button>
 					</Flex>

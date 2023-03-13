@@ -22,7 +22,7 @@ export const MessageItem = ({ msg = {}, myUsername }) => {
 			variation="elevated"
 			alignSelf={isMyMsg ? 'end' : 'start'}
 			width={{ base: '300px', medium: '450px' }}
-			backgroundColor={isMyMsg ? '#007aff' : '#DDDDDD'}
+			backgroundColor={isMyMsg ? '#C4F135' : '#DDDDDD'}			
 		>
 			<Flex>
 				{msg.avatar &&
@@ -36,11 +36,11 @@ export const MessageItem = ({ msg = {}, myUsername }) => {
 
 				<View>
 					<Flex>
-						<Heading level={5} color={isMyMsg ? 'white' : 'black'}>
+						<Heading level={5} color={'black'}>
 							{msg.owner}{' '}
 							<Text
 								as="span"
-								color={isMyMsg ? 'white' : 'black'}
+								color={'black'}
 								fontSize={'12px'}
 								fontWeight="normal"
 							>
@@ -62,7 +62,7 @@ export const MessageItem = ({ msg = {}, myUsername }) => {
 
 const TextMessage = ({ isMyMsg, msgContent, isEdited }) => {
 	return (
-		<Text display={'inline'} color={isMyMsg ? 'white' : 'black'}>
+		<Text display={'inline'} color={'black'}>
 			{msgContent}{' '}
 		</Text>
 	)

@@ -15,7 +15,7 @@ export const MessageList = ({ messages = [], myUsername }) => {
 			backgroundColor="white"
 			style={{ overflowY: 'scroll' }}
 			direction="column-reverse"
-			padding="5px"
+			padding=".8em"
 			ref={contentRef}
 		>
 			{messages.map((msg) => (
