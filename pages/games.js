@@ -10,7 +10,7 @@ import {
 import Head from 'next/head';
 import Modal from '../components/Modal';
 
-const baseUrl = 'https://jprc0jj2tb.execute-api.us-east-1.amazonaws.com/demo';
+const baseUrl = 'https://pmizqmbanw.us-east-1.awsapprunner.com';
 
 function GameList() {
   const router = useRouter();
@@ -18,19 +18,27 @@ function GameList() {
   const [games, setGames] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [gameName, setGameName] = useState('');
+  const [authToken, setAuthToken] = useState('');
 
+  useEffect(() => {
+    setAuthToken(localStorage.getItem('AH-authToken'));
+  }, []);
 
   useEffect(() => {
     async function loadGames() {
       const response = await fetch(`${baseUrl}/games`, {
-        method: 'GET'
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${authToken}`
+        }
       });
       const gameList = await response.json();
       setGames(gameList);
     }
-
-    loadGames();
-  }, []);
+    if (authToken) {
+      loadGames();
+    }
+  }, [authToken]);
 
   const handleCreateNewRoom = async (e) => {
     setShowModal(true);
@@ -41,17 +49,24 @@ function GameList() {
   };
 
   const handleConfirm = () => {
-    fetch(`${baseUrl}/games`, {
-      method: 'POST',
-      body: JSON.stringify({
-        duration: 7200,
-        name: gameName
-      })
-    })
-      .then(response => response.json())
-      .then(response => {
-        router.push(`/games/${response.id}`);
+    async function createGame(){
+      const response = await fetch(`${baseUrl}/games`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: gameName,
+          duration: 7200        
+        })      
       });
+
+      const gameDetail= await response.json();
+      router.push(`/games/${gameDetail.id}`);
+    }
+    
+    createGame();
   };
 
   const handleSignOut = () => {

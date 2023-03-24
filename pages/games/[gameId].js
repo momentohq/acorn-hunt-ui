@@ -1,29 +1,40 @@
-import { Flex, Heading, useTheme, View } from '@aws-amplify/ui-react'
+import { Flex, View } from '@aws-amplify/ui-react'
 import Head from 'next/head';
 import { useEffect, useState } from 'react'
-import { InputArea } from '../../components/InputArea'
-import { MessageList } from '../../components/Message'
 import { useRouter } from 'next/router'
-import useWebSocket, { ReadyState } from 'react-use-websocket';
-import styles from './[gameId].module.css';
+import useWebSocket from 'react-use-websocket';
+import Chat from '../../components/Chat/Chat';
+import PlayerList from '../../components/Chat/PlayerList';
+import Map from '../../components/Map/Map';
 
-const socketBaseUrl = 'wss://e3gxgnmytj.execute-api.us-east-1.amazonaws.com/demo';
+const socketBaseUrl = 'wss://6wpfu6sgk1.execute-api.us-east-1.amazonaws.com/demo';
+const baseUrl = 'https://pmizqmbanw.us-east-1.awsapprunner.com';
 
 function GamePage({ }) {
-	const { tokens } = useTheme();
 	const router = useRouter();
 
 	const [messages, setMessages] = useState([]);
+	const [players, setPlayers] = useState([]);
 	const [gameName, setGameName] = useState('Loading...');
 	const [gameTitle, setGameTitle] = useState('Loading Game...');
 	const [username, setUsername] = useState('');
 	const [authToken, setAuthToken] = useState('');
 	const [socketUrl, setSocketUrl] = useState(socketBaseUrl);
+	const [avatar, setAvatar] = useState('');
 
 	useEffect(() => {
 		setAuthToken(localStorage.getItem('AH-authToken'));
-		setUsername(localStorage.getItem('AH-username'));
+		const storedUsername = localStorage.getItem('AH-username');
+		setUsername(storedUsername);
 	}, []);
+
+	useEffect(() => {
+		if (username) {
+			setAvatar(username.charAt(0).toUpperCase());
+		} else {
+			setAvatar('');
+		}
+	}, [username]);
 
 	useEffect(() => {
 		setSocketUrl(`${socketBaseUrl}?access_token=${authToken}`);
@@ -35,34 +46,40 @@ function GamePage({ }) {
 		onMessage: (event) => processMessage(event)
 	});
 
-	const connectionStatus = {
-		[ReadyState.CONNECTING]: 'Connecting',
-		[ReadyState.OPEN]: 'Connected',
-		[ReadyState.CLOSING]: 'Closing',
-		[ReadyState.CLOSED]: 'Disconnected',
-		[ReadyState.UNINSTANTIATED]: 'Uninstantiated',
-	}[readyState];
-
 
 	const loginToGame = (gameId) => {
-		console.log('here', gameId);
-		sendJsonMessage({
-			action: 'join-game',
-			gameId: gameId
-		});
+		async function joinGame() {
+			const response = await fetch(`${baseUrl}/games/${gameId}/players`, {
+				method: 'POST',
+				headers: {
+					Authorization: `Bearer ${authToken}`
+				}
+			});
+
+			const gameDetails = await response.json();
+
+			handleGameJoined(gameDetails.players, gameDetails.messages);
+			setUsername(gameDetails.username);
+			setGameName(gameDetails.name);
+			setGameTitle(`${gameDetails.name} | Acorn Hunt`);
+		};
+
+		joinGame();
 	}
 
 	const processMessage = (event) => {
 		const message = JSON.parse(event.data);
-		console.log(message);
 		if (!message.type) return;
 
 		switch (message.type.toLowerCase()) {
 			case 'new-message':
 				handleNewMessage(message.username, message.message, message.time);
 				break;
-			case 'player-change':
-				handlePlayerChange(message.message);
+			case 'player-joined':
+				handlePlayerChange(message.message, message.username, message.time, true);
+				break;
+			case 'player-left':
+				handlePlayerChange(message.message, message.username, message.time);
 				break;
 			case 'game-joined':
 				handleGameJoined(message.players, message.messages);
@@ -76,17 +93,21 @@ function GamePage({ }) {
 	const handleGameJoined = (players, messages) => {
 		const chatHistory = [];
 		messages.map((m, index) => {
-			chatHistory.unshift({
-				id: index,
-				content: {
-					text: m.message
-				},
-				...m.username && { owner: m.username },
-				...m.time && { createdAt: m.time }
-			});
+			const key = `${m.type}#${m.time}`;
+			if (!chatHistory.some(ch => ch.key == key)) {
+				chatHistory.unshift({
+					id: index,
+					key,
+					content: {
+						text: m.message
+					},
+					...(m.type == 'new-message') && { owner: m.username },
+					...m.time && { createdAt: m.time }
+				});
+			}
 		});
-
 		setMessages(chatHistory);
+		setPlayers(players);
 	};
 
 	const handleNewMessage = (messageUsername, message, time) => {
@@ -96,45 +117,53 @@ function GamePage({ }) {
 			content: {
 				text: message
 			},
-			createdAt: time
+			createdAt: time,
+			time
 		};
-
+		
 		setMessages([newMessage, ...messages]);
 	};
 
-	const handlePlayerChange = (message) => {
+	const handlePlayerChange = (message, username, time, didJoin) => {
+		const key = `${username}#${time}#${didJoin}`;
 		const playerChangeMessage = {
+			key,
 			id: message.length + 1,
 			content: {
 				text: message
-			}
-		};
-
-		setMessages([playerChangeMessage, ...messages]);
-	};
-
-	const handleMessageSend = async (newMessage) => {
-		sendJsonMessage({
-			action: 'send-message',
-			gameId: router.query.gameId,
-			message: newMessage
-		});
-
-		const message = {
-			id: messages.length + 1,
-			owner: username,
-			content: {
-				text: newMessage
 			},
-			createdAt: new Date()
+			time
 		};
 
-		setMessages([message, ...messages]);
+		if (!messages.some(m => m.key == key)) {			
+			setMessages([playerChangeMessage, ...messages]);
+		}
+
+		if (didJoin) {
+			if (!players.includes(username)) {
+				players.push(username);
+				players.sort();
+				setPlayers(players);
+			}
+		} else {
+			setPlayers(players.filter(p => p != username));
+		}
 	};
 
 	const handleGoBack = () => {
-		router.push('/');
-	}
+		async function leaveGame() {
+			await fetch(`${baseUrl}/games/${router.query.gameId}/players`, {
+				method: 'DELETE',
+				headers: {
+					Authorization: `Bearer ${authToken}`
+				}
+			});
+
+			router.push(`/games`);
+		}
+
+		leaveGame();
+	};
 
 	return (
 		<>
@@ -142,27 +171,23 @@ function GamePage({ }) {
 				<Head>
 					<title>{gameTitle}</title>
 				</Head>
-				<Flex direction={{ base: 'column', medium: 'row' }}>
-					<View flex={{ base: 0, medium: 1 }}>
-						<View margin="0 auto" maxWidth={{ base: '95vw', medium: '100vw' }}>
-							<Heading
-								style={{ borderBottom: '1px solid black' }}
-								padding={tokens.space.small}
-								textAlign={'center'}
-								level={3}
-								color={'#FFFFFF'}
-							>
-								{gameName}
-							</Heading>
-							<Flex direction="column" height="85vh" padding={'0 1em'}>
-								<MessageList messages={messages} myUsername={username} />
-								<InputArea onMessageSend={handleMessageSend} connectionStatus={connectionStatus} />
-							</Flex>
+				<Flex direction="column">
+					<Flex direction="row" alignItems="center" color={'white'} backgroundColor={'#0E2515'} fontSize="1.5rem" padding={'small'}>
+						<div style={{ marginLeft: '1rem', cursor: 'pointer' }} onClick={handleGoBack}>&#8592;</div>
+						<div style={{ display: 'flex', alignItems: 'center', flexGrow: 1, justifyContent: 'center' }}>{gameName}</div>
+						<div style={{ marginRight: '1rem', display: 'flex', alignItems: 'center' }}>
+							<div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#00C88C', color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{avatar}</div>
+						</div>
+					</Flex>
+					<Flex direction="row" >
+						<View style={{ flexBasis: '80%', paddingLeft: '1em' }}>
+							<Map width={10} height={10} specialTiles={[{ x: 3, y: 5, type: 'tree' }, { x: 7, y: 1, type: 'tree' }, { x: 2, y: 8, type: 'tree' }]} />
 						</View>
-					</View>
-					<div className={styles['back-arrow']} onClick={handleGoBack}>
-						&#8592;
-					</div>
+						<Flex direction="column" style={{ flexBasis: '20%' }} border='2px solid #000' borderRadius='15px' margin='0 .5em'>
+							<PlayerList players={players} username={username} />
+							<Chat gameId={router.query.gameId} messages={messages} username={username} readyState={readyState} sendJsonMessage={sendJsonMessage} setMessages={setMessages} />
+						</Flex>
+					</Flex>
 				</Flex>
 			</View>
 		</>

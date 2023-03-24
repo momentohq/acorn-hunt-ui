@@ -21,8 +21,9 @@ export const MessageItem = ({ msg = {}, myUsername }) => {
 			borderRadius={tokens.radii.small}
 			variation="elevated"
 			alignSelf={isMyMsg ? 'end' : 'start'}
-			width={{ base: '300px', medium: '450px' }}
-			backgroundColor={isMyMsg ? '#C4F135' : '#DDDDDD'}			
+			width={{ base: '250px', medium: '375px' }}
+			backgroundColor={isMyMsg ? '#C4F135' : '#DDDDDD'}
+			padding={'.5em .75em'}
 		>
 			<Flex>
 				{msg.avatar &&

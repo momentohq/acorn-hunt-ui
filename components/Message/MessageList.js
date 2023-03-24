@@ -8,13 +8,13 @@ export const MessageList = ({ messages = [], myUsername }) => {
 		const content = contentRef.current;
 		content.scrollTop = content.scrollHeight;
 	}, [messages]);
-
 	return (
 		<Flex
 			flex="1"
 			backgroundColor="white"
 			style={{ overflowY: 'scroll' }}
 			direction="column-reverse"
+			borderRadius={'5px'}
 			padding=".8em"
 			ref={contentRef}
 		>

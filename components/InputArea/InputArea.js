@@ -2,8 +2,6 @@ import {
 	Button,
 	Flex,
 	TextAreaField,
-	TextField,
-	Text,
 	View,
 } from '@aws-amplify/ui-react'
 import { useState } from 'react'
@@ -13,11 +11,11 @@ export const InputArea = ({ onMessageSend, connectionStatus }) => {
 	const [messageText, setMessageText] = useState('');
 
 	const handleFormSubmit = async (e) => {
-		e.preventDefault()
+		e.preventDefault();
 		let key
 
 		onMessageSend(messageText.trim(), key)
-		setMessageText('')
+		setMessageText('');
 	}
 
 	const handleKeyUp = (e) => {
